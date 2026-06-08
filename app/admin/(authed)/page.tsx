@@ -61,8 +61,8 @@ export default async function Dashboard() {
             <strong>Text-to-Speech</strong>
             <p className="muted" style={{ marginTop: 4 }}>
               ElevenLabs Eleven v3 with audio-tag direction
-              (<span className="kbd">[whispers]</span>, <span className="kbd">[excited]</span>…) and Microsoft
-              Azure Neural with SSML express-as styles.
+              (<span className="kbd">[whispers]</span>, <span className="kbd">[excited]</span>…).
+              Switch between multiple accounts per provider.
             </p>
           </div>
           <div>

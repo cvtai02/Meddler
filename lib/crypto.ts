@@ -46,33 +46,76 @@ export function decrypt(blob: EncryptedBlob): string {
   return pt.toString("utf8");
 }
 
-export async function getProviderKey(provider: string): Promise<string | null> {
+export type ProviderKeySummary = {
+  id: number;
+  provider: string;
+  label: string;
+  updated_at: string;
+};
+
+export async function listProviderKeys(
+  provider?: string,
+): Promise<ProviderKeySummary[]> {
+  const { query } = await import("./db");
+  const res = provider
+    ? await query(
+        "SELECT id, provider, label, updated_at FROM api_keys WHERE provider = $1 ORDER BY label",
+        [provider],
+      )
+    : await query(
+        "SELECT id, provider, label, updated_at FROM api_keys ORDER BY provider, label",
+      );
+  return res.rows;
+}
+
+export async function getProviderKeyById(id: number): Promise<{
+  provider: string;
+  label: string;
+  apiKey: string;
+} | null> {
   const { query } = await import("./db");
   const res = await query(
-    "SELECT ciphertext, iv, auth_tag FROM api_keys WHERE provider = $1",
-    [provider],
+    "SELECT provider, label, ciphertext, iv, auth_tag FROM api_keys WHERE id = $1",
+    [id],
   );
   if (res.rowCount === 0) return null;
   const r = res.rows[0];
-  return decrypt({ ciphertext: r.ciphertext, iv: r.iv, authTag: r.auth_tag });
+  return {
+    provider: r.provider,
+    label: r.label,
+    apiKey: decrypt({ ciphertext: r.ciphertext, iv: r.iv, authTag: r.auth_tag }),
+  };
 }
 
 export async function setProviderKey(
   provider: string,
+  label: string,
   plaintext: string,
   metadata: Record<string, unknown> = {},
 ) {
   const { query } = await import("./db");
   const blob = encrypt(plaintext);
   await query(
-    `INSERT INTO api_keys (provider, ciphertext, iv, auth_tag, metadata)
-     VALUES ($1, $2, $3, $4, $5::jsonb)
-     ON CONFLICT (provider) DO UPDATE
+    `INSERT INTO api_keys (provider, label, ciphertext, iv, auth_tag, metadata)
+     VALUES ($1, $2, $3, $4, $5, $6::jsonb)
+     ON CONFLICT (provider, label) DO UPDATE
      SET ciphertext = EXCLUDED.ciphertext,
          iv = EXCLUDED.iv,
          auth_tag = EXCLUDED.auth_tag,
          metadata = EXCLUDED.metadata,
          updated_at = NOW()`,
-    [provider, blob.ciphertext, blob.iv, blob.authTag, JSON.stringify(metadata)],
+    [
+      provider,
+      label,
+      blob.ciphertext,
+      blob.iv,
+      blob.authTag,
+      JSON.stringify(metadata),
+    ],
   );
+}
+
+export async function deleteProviderKey(id: number) {
+  const { query } = await import("./db");
+  await query("DELETE FROM api_keys WHERE id = $1", [id]);
 }
