@@ -46,6 +46,23 @@ export async function isLoggedIn(): Promise<boolean> {
   return verifyToken(c.get(COOKIE)?.value);
 }
 
+/** True when the request carries `Authorization: Bearer <SYSTEM_SECRET>`. */
+export function hasBearerSecret(req: Request): boolean {
+  const header = req.headers.get("authorization") ?? "";
+  const match = /^Bearer\s+(.+)$/i.exec(header.trim());
+  if (!match) return false;
+  return verifySystemSecret(match[1].trim());
+}
+
+/**
+ * Authorizes a request from either an admin session cookie or a bearer token.
+ * Lets external apps call the API without the browser login flow.
+ */
+export async function isAuthorized(req: Request): Promise<boolean> {
+  if (hasBearerSecret(req)) return true;
+  return isLoggedIn();
+}
+
 export async function setSession() {
   const c = await cookies();
   c.set(COOKIE, makeToken(), {

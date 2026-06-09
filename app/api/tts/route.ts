@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isLoggedIn } from "@/lib/auth";
+import { isAuthorized } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { getProviderKeyById } from "@/lib/crypto";
 import * as elevenlabs from "@/lib/tts/elevenlabs";
@@ -11,7 +11,7 @@ const STABILITY: ReadonlySet<elevenlabs.StabilityV3> =
   new Set<elevenlabs.StabilityV3>(["creative", "natural", "robust"]);
 
 export async function POST(req: Request) {
-  if (!(await isLoggedIn())) {
+  if (!(await isAuthorized(req))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

@@ -7,7 +7,7 @@ const ITEMS = [
   { href: "/admin", label: "Dashboard", icon: "▦" },
   { href: "/admin/tts", label: "Text-to-Speech", icon: "♪" },
   { href: "/admin/crawl", label: "Crawl Assets", icon: "↗" },
-  { href: "/admin/api-keys", label: "API Keys", icon: "⌬" },
+  { href: "/admin/docs", label: "Docs", icon: "❮❯" },
 ];
 
 export default function Sidebar() {

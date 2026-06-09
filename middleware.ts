@@ -17,6 +17,15 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // The TTS API also accepts a bearer token for external apps. Let those
+  // requests through; the route handler verifies the secret itself.
+  if (pathname.startsWith("/api/tts")) {
+    const auth = req.headers.get("authorization") ?? "";
+    if (/^Bearer\s+.+/i.test(auth.trim())) {
+      return NextResponse.next();
+    }
+  }
+
   const token = req.cookies.get("meddler_session")?.value;
   if (!token) {
     if (pathname.startsWith("/api/")) {

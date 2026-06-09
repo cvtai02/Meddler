@@ -5,10 +5,13 @@ const MODEL_ID = "eleven_v3";
 
 export type StabilityV3 = "creative" | "natural" | "robust";
 
+// Eleven v3 accepts only three discrete stability values — any other value is
+// auto-rounded to the nearest of these. 0.0 = Creative, 0.5 = Natural,
+// 1.0 = Robust. See https://elevenlabs.io/docs/overview/capabilities/text-to-speech/best-practices
 const V3_STABILITY_TO_NUMERIC: Record<StabilityV3, number> = {
-  creative: 0.3,
+  creative: 0.0,
   natural: 0.5,
-  robust: 0.8,
+  robust: 1.0,
 };
 
 export type ElevenLabsRequest = {

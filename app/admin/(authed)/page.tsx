@@ -37,9 +37,9 @@ export default async function Dashboard() {
       ) : (
         <div className="grid cols-3">
           <div className="card stat">
-            <span className="label">Stored API keys</span>
+            <span className="label">Provider connections</span>
             <span className="value">{stats.keys}</span>
-            <Link href="/admin/api-keys" className="muted">Manage →</Link>
+            <Link href="/admin/tts" className="muted">Manage →</Link>
           </div>
           <div className="card stat">
             <span className="label">TTS generations</span>

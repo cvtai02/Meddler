@@ -26,10 +26,34 @@ type Account = {
 
 type Stability = "creative" | "natural" | "robust";
 
-const AUDIO_TAGS = [
-  "whispers", "excited", "sighs", "laughs", "shouts",
-  "sad", "happy", "angry", "curious", "sarcastic",
-  "pause", "cough", "gasp", "thinking",
+// Eleven v3 audio tags, grouped by category. Insert into the script to direct
+// delivery — most reliable on Creative/Natural stability.
+const AUDIO_TAG_GROUPS: { label: string; tags: string[] }[] = [
+  {
+    label: "Emotions",
+    tags: [
+      "excited", "happy", "sad", "angry", "nervous", "frustrated",
+      "curious", "crying", "tired", "hopeful", "annoyed", "sarcastic",
+    ],
+  },
+  {
+    label: "Delivery",
+    tags: [
+      "whispers", "shouts", "softly", "deadpan", "cheerfully", "playfully",
+      "dramatic tone", "serious tone", "slowly", "rushed", "stammers", "hesitates",
+    ],
+  },
+  {
+    label: "Reactions",
+    tags: [
+      "laughs", "laughs harder", "chuckles", "giggles", "sighs", "exhales",
+      "gasps", "gulps", "snorts", "clears throat", "coughs", "yawns", "groans",
+    ],
+  },
+  {
+    label: "Pauses & pacing",
+    tags: ["pause", "short pause", "long pause", "interrupting", "drawn out"],
+  },
 ];
 
 export default function ProviderDetailPage() {
@@ -487,19 +511,37 @@ export default function ProviderDetailPage() {
                     </p>
 
                     <label style={{ marginTop: 14 }}>Audio tags</label>
-                    <div className="chips">
-                      {AUDIO_TAGS.map((tag) => (
-                        <button
-                          type="button"
-                          key={tag}
-                          className="chip"
-                          onClick={() => insertTag(tag)}
-                          title={`Insert [${tag}]`}
+                    <p className="muted-2" style={{ fontSize: 12, margin: "0 0 8px" }}>
+                      Click to insert into the script at the cursor.
+                    </p>
+                    {AUDIO_TAG_GROUPS.map((group) => (
+                      <div key={group.label} style={{ marginBottom: 10 }}>
+                        <div
+                          className="muted-2"
+                          style={{
+                            fontSize: 11,
+                            textTransform: "uppercase",
+                            letterSpacing: 0.5,
+                            marginBottom: 5,
+                          }}
                         >
-                          <span className="tag">[{tag}]</span>
-                        </button>
-                      ))}
-                    </div>
+                          {group.label}
+                        </div>
+                        <div className="chips">
+                          {group.tags.map((tag) => (
+                            <button
+                              type="button"
+                              key={tag}
+                              className="chip"
+                              onClick={() => insertTag(tag)}
+                              title={`Insert [${tag}]`}
+                            >
+                              <span className="tag">[{tag}]</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </>
                 )}
                 {provider === "soniox" && (
