@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isLoggedIn } from "@/lib/auth";
+import { hasBearerSecret } from "@/lib/auth";
 import { getProviderKeyById } from "@/lib/crypto";
 import * as elevenlabs from "@/lib/tts/elevenlabs";
 import * as soniox from "@/lib/tts/soniox";
@@ -7,7 +7,7 @@ import * as soniox from "@/lib/tts/soniox";
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
-  if (!(await isLoggedIn())) {
+  if (!hasBearerSecret(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const url = new URL(req.url);

@@ -1,7 +1,38 @@
-type Props = { searchParams: Promise<{ error?: string; next?: string }> };
+"use client";
 
-export default async function LoginPage({ searchParams }: Props) {
-  const sp = await searchParams;
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { authFetch, setSecret, clearSecret } from "@/lib/clientAuth";
+
+export default function LoginPage() {
+  const router = useRouter();
+  const [secret, setSecretInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(false);
+    // Store the secret, then verify it against a protected endpoint.
+    setSecret(secret);
+    try {
+      const res = await authFetch("/api/api-keys");
+      if (res.ok) {
+        router.replace("/admin");
+        return;
+      }
+      // Wrong secret — drop it and show the error.
+      clearSecret();
+      setError(true);
+    } catch {
+      clearSecret();
+      setError(true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="login-shell">
       <div className="login-card">
@@ -13,21 +44,27 @@ export default async function LoginPage({ searchParams }: Props) {
         <p className="muted" style={{ marginTop: 4, marginBottom: 20 }}>
           Enter the system secret to continue.
         </p>
-        <form action="/api/auth/login" method="post">
-          <input type="hidden" name="next" value={sp.next || "/admin"} />
+        <form onSubmit={submit}>
           <div className="field">
             <label htmlFor="secret">System secret</label>
             <input
               id="secret"
-              name="secret"
               type="password"
               autoComplete="current-password"
               autoFocus
               required
+              value={secret}
+              onChange={(e) => setSecretInput(e.target.value)}
             />
           </div>
-          {sp.error && <div className="error-banner" style={{ marginBottom: 12 }}>Invalid secret.</div>}
-          <button type="submit" style={{ width: "100%" }}>Sign in</button>
+          {error && (
+            <div className="error-banner" style={{ marginBottom: 12 }}>
+              Invalid secret.
+            </div>
+          )}
+          <button type="submit" disabled={busy} style={{ width: "100%" }}>
+            {busy ? "Signing in…" : "Sign in"}
+          </button>
         </form>
       </div>
     </div>

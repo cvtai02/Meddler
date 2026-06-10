@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAuthorized } from "@/lib/auth";
+import { hasBearerSecret } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { getProviderKeyById } from "@/lib/crypto";
 import * as elevenlabs from "@/lib/tts/elevenlabs";
@@ -11,7 +11,7 @@ const STABILITY: ReadonlySet<elevenlabs.StabilityV3> =
   new Set<elevenlabs.StabilityV3>(["creative", "natural", "robust"]);
 
 export async function POST(req: Request) {
-  if (!(await isAuthorized(req))) {
+  if (!hasBearerSecret(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { isLoggedIn } from "@/lib/auth";
+import { hasBearerSecret } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { crawl } from "@/lib/crawl";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  if (!(await isLoggedIn())) {
+  if (!hasBearerSecret(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

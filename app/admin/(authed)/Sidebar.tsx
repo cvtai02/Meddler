@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { clearSecret } from "@/lib/clientAuth";
 
 const ITEMS = [
   { href: "/admin", label: "Dashboard", icon: "▦" },
@@ -12,6 +13,13 @@ const ITEMS = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  function signOut() {
+    clearSecret();
+    router.replace("/admin/login");
+  }
+
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -28,9 +36,7 @@ export default function Sidebar() {
         );
       })}
       <div className="spacer" />
-      <form action="/api/auth/logout" method="post">
-        <button type="submit" className="ghost" style={{ width: "100%" }}>Sign out</button>
-      </form>
+      <button type="button" onClick={signOut} className="ghost" style={{ width: "100%" }}>Sign out</button>
       <div className="footer">v0.1 · self-hosted</div>
     </aside>
   );

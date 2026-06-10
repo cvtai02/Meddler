@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { authFetch } from "@/lib/clientAuth";
 
 type CrawlResponse = {
   source: string;
@@ -30,7 +31,7 @@ export default function CrawlPage() {
     setError(null);
     setResult(null);
     try {
-      const res = await fetch("/api/crawl", {
+      const res = await authFetch("/api/crawl", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),

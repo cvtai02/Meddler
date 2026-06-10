@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isLoggedIn } from "@/lib/auth";
+import { hasBearerSecret } from "@/lib/auth";
 import {
   deleteProviderKey,
   listProviderKeys,
@@ -10,8 +10,8 @@ export const runtime = "nodejs";
 
 const ALLOWED = new Set(["elevenlabs", "soniox"]);
 
-export async function GET() {
-  if (!(await isLoggedIn())) {
+export async function GET(req: Request) {
+  if (!hasBearerSecret(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const keys = await listProviderKeys();
@@ -19,7 +19,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  if (!(await isLoggedIn())) {
+  if (!hasBearerSecret(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const body = await req.json().catch(() => null);
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  if (!(await isLoggedIn())) {
+  if (!hasBearerSecret(req)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const url = new URL(req.url);

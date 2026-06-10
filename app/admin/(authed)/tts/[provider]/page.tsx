@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { notFound, useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { authFetch } from "@/lib/clientAuth";
 import { providerById } from "../providers";
 
 type Voice = {
@@ -95,7 +96,7 @@ export default function ProviderDetailPage() {
 
   async function loadAccounts(selectId?: number) {
     try {
-      const res = await fetch("/api/api-keys");
+      const res = await authFetch("/api/api-keys");
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error || `HTTP ${res.status}`);
@@ -134,7 +135,7 @@ export default function ProviderDetailPage() {
       setVoicesLoading(true);
       setVoicesError(null);
       try {
-        const res = await fetch(`/api/voices?accountId=${accountId}`);
+        const res = await authFetch(`/api/voices?accountId=${accountId}`);
         if (!res.ok) {
           const j = await res.json().catch(() => ({}));
           throw new Error(j.error || `HTTP ${res.status}`);
@@ -205,7 +206,7 @@ export default function ProviderDetailPage() {
     setSaving(true);
     setSaveError(null);
     try {
-      const res = await fetch("/api/api-keys", {
+      const res = await authFetch("/api/api-keys", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -231,7 +232,7 @@ export default function ProviderDetailPage() {
 
   async function removeConnection(id: number, label: string) {
     if (!confirm(`Delete the "${label}" connection?`)) return;
-    const res = await fetch(`/api/api-keys?id=${id}`, { method: "DELETE" });
+    const res = await authFetch(`/api/api-keys?id=${id}`, { method: "DELETE" });
     if (res.ok) await loadAccounts();
   }
 
@@ -250,7 +251,7 @@ export default function ProviderDetailPage() {
       if (provider === "elevenlabs") body.stability = stability;
       if (provider === "soniox") body.language = language;
 
-      const res = await fetch("/api/tts", {
+      const res = await authFetch("/api/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),

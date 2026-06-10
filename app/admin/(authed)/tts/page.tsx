@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { authFetch } from "@/lib/clientAuth";
 import { PROVIDERS } from "./providers";
 
 type Account = {
@@ -20,7 +21,7 @@ export default function TtsProvidersPage() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/api-keys");
+        const res = await authFetch("/api/api-keys");
         if (!res.ok) {
           const j = await res.json().catch(() => ({}));
           throw new Error(j.error || `HTTP ${res.status}`);
