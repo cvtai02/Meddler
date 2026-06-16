@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { clearSecret } from "@/lib/clientAuth";
+import { clearAccessToken } from "@/app/core/auth/client-auth";
 
 const ITEMS = [
   { href: "/admin", label: "Dashboard", icon: "▦" },
@@ -16,7 +16,7 @@ export default function Sidebar() {
   const router = useRouter();
 
   function signOut() {
-    clearSecret();
+    clearAccessToken();
     router.replace("/admin/login");
   }
 

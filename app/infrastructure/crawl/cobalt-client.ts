@@ -25,7 +25,35 @@ export function detectSource(input: string): CrawlSource {
 
 const SUPPORTED: CrawlSource[] = ["tiktok", "facebook", "youtube"];
 
+function isSafeUrl(input: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(input);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+
+  const host = parsed.hostname.toLowerCase();
+  if (host === "localhost" || host === "[::1]") return false;
+
+  const ipv4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+  if (ipv4) {
+    const [, a, b] = ipv4.map(Number);
+    if (a === 127 || a === 10 || a === 0) return false;
+    if (a === 172 && b >= 16 && b <= 31) return false;
+    if (a === 192 && b === 168) return false;
+    if (a === 169 && b === 254) return false;
+  }
+
+  return true;
+}
+
 export async function crawl(inputUrl: string): Promise<CrawlResult> {
+  if (!isSafeUrl(inputUrl)) {
+    return { source: "unknown", inputUrl, status: "error", error: "Invalid or blocked URL." };
+  }
+
   const source = detectSource(inputUrl);
   if (!SUPPORTED.includes(source)) {
     return {

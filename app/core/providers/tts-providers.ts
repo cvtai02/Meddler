@@ -1,21 +1,22 @@
-export type ProviderId = "elevenlabs" | "soniox";
+export const TTS_PROVIDERS = ["elevenlabs", "soniox"] as const;
 
-export type ProviderMeta = {
-  id: ProviderId;
+export type TtsProviderId = (typeof TTS_PROVIDERS)[number];
+
+export function isTtsProviderId(value: string): value is TtsProviderId {
+  return (TTS_PROVIDERS as readonly string[]).includes(value);
+}
+
+export type TtsProviderMeta = {
+  id: TtsProviderId;
   label: string;
-  /** Underlying model shown on the detail page. */
   model: string;
-  /** Short one-liner for the provider card / header. */
   blurb: string;
-  /** Where to grab an API key. */
   apiKeyUrl: string;
-  /** Monogram shown in the icon tile. */
   initials: string;
-  /** CSS background for the icon tile. */
   accent: string;
 };
 
-export const PROVIDERS: ProviderMeta[] = [
+export const TTS_PROVIDER_META: TtsProviderMeta[] = [
   {
     id: "elevenlabs",
     label: "ElevenLabs",
@@ -36,6 +37,6 @@ export const PROVIDERS: ProviderMeta[] = [
   },
 ];
 
-export function providerById(id: string): ProviderMeta | undefined {
-  return PROVIDERS.find((p) => p.id === id);
+export function providerById(id: string): TtsProviderMeta | undefined {
+  return TTS_PROVIDER_META.find((p) => p.id === id);
 }
