@@ -7,7 +7,7 @@ REPO_DIR="$HOME/Meddler"
 APP_NAME="meddler"
 
 # First-time setup: clone if the repo doesn't exist yet
-if [ ! -d "$REPO_DIR" ]; then
+if [ ! -d "$REPO_DIR/.git" ]; then
   echo ">>> Cloning repo..."
   git clone https://github.com/cvtai02/Meddler.git "$REPO_DIR"
 fi
