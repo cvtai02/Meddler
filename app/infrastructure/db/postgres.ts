@@ -4,12 +4,26 @@ declare global {
   var __pgPool: Pool | undefined;
 }
 
+function isLocalDatabaseHost(hostname: string): boolean {
+  return ["localhost", "127.0.0.1", "::1"].includes(hostname);
+}
+
+function sslConfig(connectionString: string) {
+  const parsed = new URL(connectionString);
+  const sslMode = parsed.searchParams.get("sslmode");
+  if (sslMode === "disable") return false;
+  if (sslMode === "require" || !isLocalDatabaseHost(parsed.hostname)) {
+    return { rejectUnauthorized: false };
+  }
+  return false;
+}
+
 function makePool() {
   const url = process.env.DATABASE_CONNECTION_STRING ?? process.env.DATABASE_URL;
   if (!url) {
-    throw new Error("DATABASE_CONNECTION_STRING is not set");
+    throw new Error("DATABASE_CONNECTION_STRING or DATABASE_URL is not set");
   }
-  const pool = new Pool({ connectionString: url, max: 10 });
+  const pool = new Pool({ connectionString: url, max: 10, ssl: sslConfig(url) });
   pool.on("connect", (client) => {
     client
       .query("SET search_path TO meddler, public")
