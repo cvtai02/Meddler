@@ -2,15 +2,17 @@ export const TTS_DOC_FILENAME = "meddler-tts-api.md";
 
 export const TTS_DOC_MD = `# Text-to-Speech API
 
-Synthesize speech from text using one of your saved provider connections
-(ElevenLabs or Soniox). Returns an MP3 audio stream.
+Synthesize speech from text with a provider and voice model selected from the
+Meddler API. Returns an MP3 audio stream.
 
 Base URL: \`https://meddler.minfect.com\`.
 
 ## Authentication
 
-First exchange your system secret for an access token, then send that token as
-a bearer token.
+First exchange your system secret for a permanent access token, then send that
+token as a bearer token. The token remains valid until \`SYSTEM_SECRET\` changes
+or the token is cleared from the client. You can generate a token in
+\`Admin / Access Token\`.
 
     curl -X POST "https://meddler.minfect.com/api/auth/login" \\
       -H "Content-Type: application/json" \\
@@ -18,62 +20,97 @@ a bearer token.
 
     Authorization: Bearer $ACCESS_TOKEN
 
-## Endpoint
+## Synthesize Speech
 
     POST https://meddler.minfect.com/api/tts
 
-## Example
+Example:
 
     curl -X POST "https://meddler.minfect.com/api/tts" \\
       -H "Authorization: Bearer $ACCESS_TOKEN" \\
       -H "Content-Type: application/json" \\
       -d '{
-        "accountId": 1,
-        "text": "[excited] Hello from Meddler! [whispers] This is text to speech.",
-        "voice": "21m00Tcm4TlvDq8ikWAM",
-        "stability": "natural"
+        "provider": "elevenlabs",
+        "voiceModel": "21m00Tcm4TlvDq8ikWAM",
+        "text": "[excited] Hello from Meddler!"
       }' \\
       --output speech.mp3
 
-## Request body
+Request body:
 
 | Field      | Type   | Required | Notes |
 | ---------- | ------ | -------- | ----- |
-| accountId  | number | yes      | Connection id of the provider connection to use. |
-| text       | string | yes      | Up to 5000 characters. ElevenLabs supports inline audio tags such as [excited] or [whispers]. |
-| voice      | string | no       | Voice id. Falls back to the provider default if omitted. |
-| stability  | string | no       | ElevenLabs only — creative, natural, or robust. |
-| language   | string | no       | Soniox only — language code such as en. The voice must support it. |
+| provider   | string | yes      | elevenlabs or soniox. |
+| voiceModel | string | yes      | Voice model id returned by GET /api/tts/voice-models. |
+| text       | string | yes      | Up to 5000 characters. ElevenLabs supports inline audio tags such as [excited]. |
 
-## Response
-
-On success: \`200 OK\` with \`Content-Type: audio/mpeg\` — the raw MP3 bytes
-(write them to a file or pipe to a player). Errors return JSON, e.g.
-\`{ "error": "account not found" }\`.
+Response:
 
 | Status | Meaning |
 | ------ | ------- |
 | 200    | MP3 audio body. |
-| 400    | Invalid JSON, missing text, or text over 5000 chars. |
+| 400    | Invalid JSON, provider, voiceModel, or text. |
 | 401    | Missing or invalid bearer token. |
-| 404    | No connection matches accountId. |
+| 404    | No saved connection exists for the requested provider. |
 | 500    | Upstream provider error during synthesis. |
 
-# Get Audio Tags
+## Get Providers
 
-Fetch the ElevenLabs audio-tag catalog used by the Meddler UI so an external app
-can render the same tag picker.
+    GET https://meddler.minfect.com/api/tts/providers
 
-## Endpoint
+Example:
+
+    curl "https://meddler.minfect.com/api/tts/providers" \\
+      -H "Authorization: Bearer $ACCESS_TOKEN"
+
+Response:
+
+    {
+      "providers": [
+        {
+          "id": "elevenlabs",
+          "label": "ElevenLabs",
+          "model": "Eleven v3",
+          "blurb": "Expressive speech with audio-tag direction.",
+          "connectionCount": 1,
+          "connected": true
+        }
+      ]
+    }
+
+## Get Voice Models
+
+    GET https://meddler.minfect.com/api/tts/voice-models?provider=elevenlabs
+
+Example:
+
+    curl "https://meddler.minfect.com/api/tts/voice-models?provider=elevenlabs" \\
+      -H "Authorization: Bearer $ACCESS_TOKEN"
+
+Response:
+
+    {
+      "voiceModels": [
+        {
+          "id": "21m00Tcm4TlvDq8ikWAM",
+          "name": "Rachel",
+          "language": "English",
+          "gender": "female"
+        }
+      ],
+      "languages": []
+    }
+
+## Get Audio Tags
 
     GET https://meddler.minfect.com/api/tts/audio-tags
 
-## Example
+Example:
 
     curl "https://meddler.minfect.com/api/tts/audio-tags" \\
       -H "Authorization: Bearer $ACCESS_TOKEN"
 
-## Response
+Response:
 
     {
       "provider": "elevenlabs",
@@ -86,12 +123,4 @@ can render the same tag picker.
         }
       ]
     }
-
-## Notes
-
-| Topic    | Details |
-| -------- | ------- |
-| Provider | Audio tags are intended for ElevenLabs Eleven v3. |
-| Syntax   | Insert tags inline in the text field, for example [whispers]. |
-| Cache    | Response includes Cache-Control: private, max-age=3600. |
 `;

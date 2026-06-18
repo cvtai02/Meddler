@@ -5,15 +5,15 @@ import { useEffect, useState } from "react";
 import { authFetch } from "@/app/core/auth/client-auth";
 import { TTS_PROVIDER_META } from "@/app/core/providers/tts-providers";
 
-type Account = {
-  id: number;
-  provider: string;
+type Provider = {
+  id: string;
   label: string;
-  updated_at: string;
+  connectionCount: number;
+  connected: boolean;
 };
 
 export default function TtsProvidersPage() {
-  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [providers, setProviders] = useState<Provider[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,19 +21,15 @@ export default function TtsProvidersPage() {
     const controller = new AbortController();
     (async () => {
       try {
-        const res = await authFetch("/api/api-keys", {
+        const res = await authFetch("/api/tts/providers", {
           signal: controller.signal,
         });
         if (!res.ok) {
           const j = await res.json().catch(() => ({}));
-          throw new Error(j.error || `HTTP ${res.status}`);
+          throw new Error(j.message || `HTTP ${res.status}`);
         }
-        const data = (await res.json()) as { keys: Account[] };
-        const next: Record<string, number> = {};
-        for (const k of data.keys || []) {
-          next[k.provider] = (next[k.provider] ?? 0) + 1;
-        }
-        if (!controller.signal.aborted) setCounts(next);
+        const data = (await res.json()) as { providers: Provider[] };
+        if (!controller.signal.aborted) setProviders(data.providers || []);
       } catch (e: any) {
         if (controller.signal.aborted) return;
         setError(e?.message ?? "failed");
@@ -59,8 +55,9 @@ export default function TtsProvidersPage() {
 
       <div className="provider-grid">
         {TTS_PROVIDER_META.map((p) => {
-          const n = counts[p.id] ?? 0;
-          const connected = n > 0;
+          const apiProvider = providers.find((item) => item.id === p.id);
+          const n = apiProvider?.connectionCount ?? 0;
+          const connected = apiProvider?.connected ?? false;
           return (
             <Link
               key={p.id}

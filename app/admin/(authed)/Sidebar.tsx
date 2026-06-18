@@ -5,10 +5,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { clearAccessToken } from "@/app/core/auth/client-auth";
 
 const ITEMS = [
-  { href: "/admin", label: "Dashboard", icon: "▦" },
-  { href: "/admin/tts", label: "Text-to-Speech", icon: "♪" },
-  { href: "/admin/crawl", label: "Crawl Assets", icon: "↗" },
-  { href: "/admin/docs", label: "Docs", icon: "❮❯" },
+  { href: "/admin", label: "Dashboard", icon: "D" },
+  { href: "/admin/tts", label: "Text-to-Speech", icon: "T" },
+  { href: "/admin/crawl", label: "Crawl Assets", icon: "C" },
+  { href: "/admin/access-token", label: "Access Token", icon: "K" },
+  { href: "/admin/docs", label: "Docs", icon: "{}" },
 ];
 
 export default function Sidebar() {
@@ -26,18 +27,35 @@ export default function Sidebar() {
         <span className="dot" />
         <span>Meddler</span>
       </div>
-      {ITEMS.map((it) => {
-        const active = it.href === "/admin" ? pathname === "/admin" : pathname.startsWith(it.href);
+      {ITEMS.map((item) => {
+        const active =
+          item.href === "/admin"
+            ? pathname === "/admin"
+            : pathname.startsWith(item.href);
         return (
-          <Link key={it.href} href={it.href} className="nav-link" data-active={active}>
-            <span className="ico" aria-hidden>{it.icon}</span>
-            <span>{it.label}</span>
+          <Link
+            key={item.href}
+            href={item.href}
+            className="nav-link"
+            data-active={active}
+          >
+            <span className="ico" aria-hidden>
+              {item.icon}
+            </span>
+            <span>{item.label}</span>
           </Link>
         );
       })}
       <div className="spacer" />
-      <button type="button" onClick={signOut} className="ghost" style={{ width: "100%" }}>Sign out</button>
-      <div className="footer">v0.1 · self-hosted</div>
+      <button
+        type="button"
+        onClick={signOut}
+        className="ghost"
+        style={{ width: "100%" }}
+      >
+        Sign out
+      </button>
+      <div className="footer">v0.1 - self-hosted</div>
     </aside>
   );
 }

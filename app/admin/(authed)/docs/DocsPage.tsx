@@ -9,7 +9,6 @@ export default function DocsPage() {
         <span className="kbd">https://meddler.minfect.com</span>.
       </p>
 
-      {/* ---------------- Use case 1: TTS API ---------------- */}
       <div className="card">
         <div className="row between" style={{ marginBottom: 6 }}>
           <div className="row wrap" style={{ gap: 10 }}>
@@ -20,16 +19,19 @@ export default function DocsPage() {
         </div>
         <h2 style={{ marginTop: 4 }}>Text-to-Speech API</h2>
         <p className="muted" style={{ marginBottom: 0 }}>
-          Synthesize speech from text using one of your saved provider
-          connections (ElevenLabs or Soniox). Returns an MP3 audio stream.
+          Synthesize speech by sending a provider, voice model, and text.
+          Returns an MP3 audio stream.
         </p>
 
         <hr />
 
         <h2>Authentication</h2>
         <p className="muted">
-          First exchange your <span className="kbd">SYSTEM_SECRET</span> for an
-          access token, then send that token as a bearer token.
+          First exchange your <span className="kbd">SYSTEM_SECRET</span> for a
+          permanent access token, then send that token as a bearer token. The
+          token remains valid until <span className="kbd">SYSTEM_SECRET</span>{" "}
+          changes or the token is cleared from the client. You can generate a
+          token in <span className="kbd">Admin / Access Token</span>.
         </p>
         <pre>{`curl -X POST "https://meddler.minfect.com/api/auth/login" \\
   -H "Content-Type: application/json" \\
@@ -45,10 +47,9 @@ Authorization: Bearer $ACCESS_TOKEN`}</pre>
   -H "Authorization: Bearer $ACCESS_TOKEN" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "accountId": 1,
-    "text": "[excited] Hello from Meddler! [whispers] This is text to speech.",
-    "voice": "21m00Tcm4TlvDq8ikWAM",
-    "stability": "natural"
+    "provider": "elevenlabs",
+    "voiceModel": "21m00Tcm4TlvDq8ikWAM",
+    "text": "[excited] Hello from Meddler!"
   }' \\
   --output speech.mp3`}</pre>
 
@@ -64,10 +65,16 @@ Authorization: Bearer $ACCESS_TOKEN`}</pre>
           </thead>
           <tbody>
             <tr>
-              <td><span className="kbd">accountId</span></td>
-              <td>number</td>
+              <td><span className="kbd">provider</span></td>
+              <td>string</td>
               <td><span className="pill good">yes</span></td>
-              <td>Connection id of the provider connection to use.</td>
+              <td><span className="kbd">elevenlabs</span> or <span className="kbd">soniox</span>.</td>
+            </tr>
+            <tr>
+              <td><span className="kbd">voiceModel</span></td>
+              <td>string</td>
+              <td><span className="pill good">yes</span></td>
+              <td>Voice model id returned by <span className="kbd">GET /api/tts/voice-models</span>.</td>
             </tr>
             <tr>
               <td><span className="kbd">text</span></td>
@@ -75,33 +82,7 @@ Authorization: Bearer $ACCESS_TOKEN`}</pre>
               <td><span className="pill good">yes</span></td>
               <td>
                 Up to 5000 characters. ElevenLabs supports inline audio tags
-                such as <span className="kbd">[excited]</span> or{" "}
-                <span className="kbd">[whispers]</span>.
-              </td>
-            </tr>
-            <tr>
-              <td><span className="kbd">voice</span></td>
-              <td>string</td>
-              <td><span className="pill">no</span></td>
-              <td>Voice id. Falls back to the provider default if omitted.</td>
-            </tr>
-            <tr>
-              <td><span className="kbd">stability</span></td>
-              <td>string</td>
-              <td><span className="pill">no</span></td>
-              <td>
-                ElevenLabs only — <span className="kbd">creative</span>,{" "}
-                <span className="kbd">natural</span>, or{" "}
-                <span className="kbd">robust</span>.
-              </td>
-            </tr>
-            <tr>
-              <td><span className="kbd">language</span></td>
-              <td>string</td>
-              <td><span className="pill">no</span></td>
-              <td>
-                Soniox only — language code such as{" "}
-                <span className="kbd">en</span>. The voice must support it.
+                such as <span className="kbd">[excited]</span>.
               </td>
             </tr>
           </tbody>
@@ -110,10 +91,10 @@ Authorization: Bearer $ACCESS_TOKEN`}</pre>
         <h2 style={{ marginTop: 20 }}>Response</h2>
         <p className="muted">
           On success: <span className="kbd">200 OK</span> with{" "}
-          <span className="kbd">Content-Type: audio/mpeg</span> — the raw MP3
-          bytes. Errors return JSON:
+          <span className="kbd">Content-Type: audio/mpeg</span>, the raw MP3
+          bytes. Errors return JSON.
         </p>
-        <pre>{`{ "error": "account not found" }`}</pre>
+        <pre>{`{ "code": "NOT_FOUND", "message": "provider connection not found" }`}</pre>
         <table>
           <thead>
             <tr>
@@ -128,7 +109,7 @@ Authorization: Bearer $ACCESS_TOKEN`}</pre>
             </tr>
             <tr>
               <td><span className="kbd">400</span></td>
-              <td>Invalid JSON, missing text, or text over 5000 chars.</td>
+              <td>Invalid JSON, provider, voice model, or text.</td>
             </tr>
             <tr>
               <td><span className="kbd">401</span></td>
@@ -136,7 +117,7 @@ Authorization: Bearer $ACCESS_TOKEN`}</pre>
             </tr>
             <tr>
               <td><span className="kbd">404</span></td>
-              <td>No connection matches <span className="kbd">accountId</span>.</td>
+              <td>No saved connection exists for the requested provider.</td>
             </tr>
             <tr>
               <td><span className="kbd">500</span></td>
@@ -146,27 +127,58 @@ Authorization: Bearer $ACCESS_TOKEN`}</pre>
         </table>
       </div>
 
-      {/* ---------------- Use case 2: Audio tags ---------------- */}
       <div className="card">
         <div className="row wrap" style={{ gap: 10, marginBottom: 6 }}>
           <span className="pill">Use case 2</span>
+          <span className="pill good">GET /api/tts/providers</span>
+        </div>
+        <h2 style={{ marginTop: 4 }}>Get Providers</h2>
+        <pre>{`curl "https://meddler.minfect.com/api/tts/providers" \\
+  -H "Authorization: Bearer $ACCESS_TOKEN"`}</pre>
+        <h2 style={{ marginTop: 20 }}>Response</h2>
+        <pre>{`{
+  "providers": [
+    {
+      "id": "elevenlabs",
+      "label": "ElevenLabs",
+      "model": "Eleven v3",
+      "connectionCount": 1,
+      "connected": true
+    }
+  ]
+}`}</pre>
+      </div>
+
+      <div className="card">
+        <div className="row wrap" style={{ gap: 10, marginBottom: 6 }}>
+          <span className="pill">Use case 3</span>
+          <span className="pill good">GET /api/tts/voice-models</span>
+        </div>
+        <h2 style={{ marginTop: 4 }}>Get Voice Models</h2>
+        <pre>{`curl "https://meddler.minfect.com/api/tts/voice-models?provider=elevenlabs" \\
+  -H "Authorization: Bearer $ACCESS_TOKEN"`}</pre>
+        <h2 style={{ marginTop: 20 }}>Response</h2>
+        <pre>{`{
+  "voiceModels": [
+    {
+      "id": "21m00Tcm4TlvDq8ikWAM",
+      "name": "Rachel",
+      "language": "English",
+      "gender": "female"
+    }
+  ],
+  "languages": []
+}`}</pre>
+      </div>
+
+      <div className="card">
+        <div className="row wrap" style={{ gap: 10, marginBottom: 6 }}>
+          <span className="pill">Use case 4</span>
           <span className="pill good">GET /api/tts/audio-tags</span>
         </div>
         <h2 style={{ marginTop: 4 }}>Get Audio Tags</h2>
-        <p className="muted" style={{ marginBottom: 0 }}>
-          Fetch the ElevenLabs audio-tag catalog used by the Meddler UI so an
-          external app can render the same tag picker.
-        </p>
-
-        <hr />
-
-        <h2>Endpoint</h2>
-        <pre>{`GET https://meddler.minfect.com/api/tts/audio-tags`}</pre>
-
-        <h2 style={{ marginTop: 20 }}>Example</h2>
         <pre>{`curl "https://meddler.minfect.com/api/tts/audio-tags" \\
   -H "Authorization: Bearer $ACCESS_TOKEN"`}</pre>
-
         <h2 style={{ marginTop: 20 }}>Response</h2>
         <pre>{`{
   "provider": "elevenlabs",
@@ -179,36 +191,6 @@ Authorization: Bearer $ACCESS_TOKEN`}</pre>
     }
   ]
 }`}</pre>
-
-        <h2 style={{ marginTop: 20 }}>Notes</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Topic</th>
-              <th>Details</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Provider</td>
-              <td>Audio tags are intended for ElevenLabs Eleven v3.</td>
-            </tr>
-            <tr>
-              <td>Syntax</td>
-              <td>
-                Insert tags inline in <span className="kbd">text</span>, for
-                example <span className="kbd">[whispers]</span>.
-              </td>
-            </tr>
-            <tr>
-              <td>Cache</td>
-              <td>
-                Response includes{" "}
-                <span className="kbd">Cache-Control: private, max-age=3600</span>.
-              </td>
-            </tr>
-          </tbody>
-        </table>
       </div>
     </>
   );

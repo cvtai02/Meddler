@@ -1,6 +1,6 @@
 import { withCors, apiError, corsOptions, readJson } from "@/app/core/api/responses";
 import { isAuthorized } from "@/app/core/auth/system-secret";
-import type { StabilityV3Dto } from "../dtos/tts.dto";
+import { isTtsProviderId } from "@/app/core/providers/tts-providers";
 import { synthesizeTts } from "../usecases/synthesize-tts";
 
 export const runtime = "nodejs";
@@ -20,16 +20,15 @@ export async function POST(req: Request) {
   }
 
   const body = raw as Record<string, unknown>;
-  const accountId = Number(body.accountId);
+  const provider = String(body.provider ?? "").trim();
+  const voiceModel = String(body.voiceModel ?? "").trim();
   const text = String(body.text ?? "").trim();
-  const voice = body.voice ? String(body.voice).trim() : undefined;
-  const language = body.language ? String(body.language).trim() : undefined;
-  const stability = body.stability
-    ? (String(body.stability) as StabilityV3Dto)
-    : undefined;
 
-  if (!Number.isInteger(accountId) || accountId <= 0) {
-    return apiError("BAD_REQUEST", "accountId required", 400);
+  if (!isTtsProviderId(provider)) {
+    return apiError("BAD_REQUEST", "provider must be elevenlabs or soniox", 400);
+  }
+  if (!voiceModel) {
+    return apiError("BAD_REQUEST", "voiceModel required", 400);
   }
   if (!text) return apiError("BAD_REQUEST", "text required", 400);
   if (text.length > 5000) {
@@ -38,14 +37,12 @@ export async function POST(req: Request) {
 
   try {
     const result = await synthesizeTts({
-      accountId,
+      provider,
+      voiceModel,
       text,
-      voice,
-      language,
-      stability,
     });
     if (!result) {
-      return apiError("NOT_FOUND", "account not found", 404);
+      return apiError("NOT_FOUND", "provider connection not found", 404);
     }
 
     return new Response(new Uint8Array(result.audio), {

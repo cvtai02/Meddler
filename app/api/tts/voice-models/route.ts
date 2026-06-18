@@ -1,14 +1,14 @@
 import {
-  GET as getVoices,
-  OPTIONS as voicesOptions,
+  GET as getVoiceModels,
+  OPTIONS as voiceModelsOptions,
 } from "@/app/modules/tts/api/voices-handlers";
 
 export const runtime = "nodejs";
 
 export function OPTIONS() {
-  return voicesOptions();
+  return voiceModelsOptions();
 }
 
 export function GET(req: Request) {
-  return getVoices(req);
+  return getVoiceModels(req);
 }

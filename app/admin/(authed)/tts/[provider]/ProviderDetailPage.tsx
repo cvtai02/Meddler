@@ -7,7 +7,7 @@ import { authFetch } from "@/app/core/auth/client-auth";
 import { AUDIO_TAG_GROUPS } from "@/app/core/providers/audio-tags";
 import { providerById } from "@/app/core/providers/tts-providers";
 
-type Voice = {
+type VoiceModel = {
   id: string;
   name: string;
   language?: string;
@@ -26,18 +26,15 @@ type Account = {
   updated_at: string;
 };
 
-type Stability = "creative" | "natural" | "robust";
-
 export default function ProviderDetailPage() {
   const params = useParams<{ provider: string }>();
   const meta = providerById(params.provider);
   if (!meta) notFound();
-  const provider = meta!.id;
+  const provider = meta.id;
 
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [accountsError, setAccountsError] = useState<string | null>(null);
   const [accountsLoaded, setAccountsLoaded] = useState(false);
-  const [accountId, setAccountId] = useState<number | null>(null);
 
   const [adding, setAdding] = useState(false);
   const [newLabel, setNewLabel] = useState("");
@@ -45,18 +42,16 @@ export default function ProviderDetailPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const [voices, setVoices] = useState<Voice[]>([]);
+  const [voiceModels, setVoiceModels] = useState<VoiceModel[]>([]);
   const [languages, setLanguages] = useState<Language[]>([]);
-  const [voicesLoading, setVoicesLoading] = useState(false);
-  const [voicesError, setVoicesError] = useState<string | null>(null);
-  const [voice, setVoice] = useState<string>("");
+  const [modelsLoading, setModelsLoading] = useState(false);
+  const [modelsError, setModelsError] = useState<string | null>(null);
+  const [voiceModel, setVoiceModel] = useState("");
   const [voiceFilter, setVoiceFilter] = useState("");
 
   const [text, setText] = useState(
-    "[excited] Welcome to Meddler! [whispers] Pick a voice and play.",
+    "[excited] Welcome to Meddler! [whispers] Pick a voice model and play.",
   );
-  const [stability, setStability] = useState<Stability>("natural");
-  const [language, setLanguage] = useState<string>("en");
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,22 +59,16 @@ export default function ProviderDetailPage() {
   const lastUrl = useRef<string | null>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
 
-  async function loadAccounts(selectId?: number) {
+  async function loadAccounts() {
     try {
       const res = await authFetch("/api/api-keys");
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        throw new Error(j.error || `HTTP ${res.status}`);
+        throw new Error(j.message || `HTTP ${res.status}`);
       }
       const data = (await res.json()) as { keys: Account[] };
-      const mine = (data.keys || []).filter((k) => k.provider === provider);
-      setAccounts(mine);
+      setAccounts((data.keys || []).filter((key) => key.provider === provider));
       setAccountsError(null);
-      setAccountId((cur) => {
-        if (selectId && mine.some((a) => a.id === selectId)) return selectId;
-        if (cur && mine.some((a) => a.id === cur)) return cur;
-        return mine[0]?.id ?? null;
-      });
     } catch (e: any) {
       setAccountsError(e?.message ?? "failed");
     } finally {
@@ -88,77 +77,87 @@ export default function ProviderDetailPage() {
   }
 
   useEffect(() => {
+    setAccountsLoaded(false);
+    setVoiceModels([]);
+    setLanguages([]);
+    setVoiceModel("");
     loadAccounts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [provider]);
 
   useEffect(() => {
-    if (accountId === null) {
-      setVoices([]);
+    if (!accountsLoaded || accounts.length === 0) {
+      setVoiceModels([]);
       setLanguages([]);
       return;
     }
+
     const controller = new AbortController();
-    async function load() {
-      setVoicesLoading(true);
-      setVoicesError(null);
+    async function loadVoiceModels() {
+      setModelsLoading(true);
+      setModelsError(null);
       try {
-        const res = await authFetch(`/api/tts/voices?accountId=${accountId}`, {
-          signal: controller.signal,
-        });
+        const res = await authFetch(
+          `/api/tts/voice-models?provider=${encodeURIComponent(provider)}`,
+          { signal: controller.signal },
+        );
         if (!res.ok) {
           const j = await res.json().catch(() => ({}));
-          throw new Error(j.error || `HTTP ${res.status}`);
+          throw new Error(j.message || `HTTP ${res.status}`);
         }
         const data = (await res.json()) as {
-          voices: Voice[];
+          voiceModels?: VoiceModel[];
+          voices?: VoiceModel[];
           languages?: Language[];
         };
         if (controller.signal.aborted) return;
-        setVoices(data.voices);
-        setLanguages(data.languages || []);
-        if (data.voices.length && !data.voices.find((v) => v.id === voice)) {
-          setVoice(data.voices[0].id);
-        }
-        if (data.languages?.length && !data.languages.find((l) => l.code === language)) {
-          const en = data.languages.find((l) => l.code === "en");
-          setLanguage(en ? "en" : data.languages[0].code);
-        }
+        const nextModels = data.voiceModels || data.voices || [];
+        const nextLanguages = data.languages || [];
+        setVoiceModels(nextModels);
+        setLanguages(nextLanguages);
+        setVoiceModel((current) => {
+          if (current && nextModels.some((model) => model.id === current)) {
+            return current;
+          }
+          return nextModels[0]?.id ?? "";
+        });
       } catch (e: any) {
-        if (controller.signal.aborted) return;
-        setVoicesError(e?.message ?? "failed");
+        if (!controller.signal.aborted) {
+          setModelsError(e?.message ?? "failed");
+        }
       } finally {
-        if (!controller.signal.aborted) setVoicesLoading(false);
+        if (!controller.signal.aborted) setModelsLoading(false);
       }
     }
-    load();
+
+    loadVoiceModels();
     return () => {
       controller.abort();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountId]);
+  }, [accountsLoaded, accounts.length, provider]);
 
   useEffect(() => () => {
     if (lastUrl.current) URL.revokeObjectURL(lastUrl.current);
   }, []);
 
-  const filteredVoices = useMemo(() => {
+  const filteredModels = useMemo(() => {
     const q = voiceFilter.trim().toLowerCase();
-    if (!q) return voices;
-    return voices.filter((v) =>
-      [v.name, v.language, v.gender, v.id].some(
-        (f) => f && f.toLowerCase().includes(q),
+    if (!q) return voiceModels;
+    return voiceModels.filter((model) =>
+      [model.name, model.language, model.gender, model.id].some(
+        (field) => field && field.toLowerCase().includes(q),
       ),
     );
-  }, [voices, voiceFilter]);
+  }, [voiceModels, voiceFilter]);
 
-  const currentVoice = voices.find((v) => v.id === voice);
+  const currentModel = voiceModels.find((model) => model.id === voiceModel);
+  const hasConnections = accounts.length > 0;
 
   function insertTag(tag: string) {
     const ta = textRef.current;
     const insertion = `[${tag}] `;
     if (!ta) {
-      setText((t) => `${t}${insertion}`);
+      setText((current) => `${current}${insertion}`);
       return;
     }
     const start = ta.selectionStart ?? text.length;
@@ -188,7 +187,7 @@ export default function ProviderDetailPage() {
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        throw new Error(j.error || `HTTP ${res.status}`);
+        throw new Error(j.message || `HTTP ${res.status}`);
       }
       setNewKey("");
       setNewLabel("");
@@ -209,7 +208,6 @@ export default function ProviderDetailPage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (accountId === null) return;
     setBusy(true);
     setError(null);
     if (lastUrl.current) {
@@ -217,10 +215,13 @@ export default function ProviderDetailPage() {
       lastUrl.current = null;
     }
     setAudioUrl(null);
+
     try {
-      const body: Record<string, unknown> = { accountId, text, voice };
-      if (provider === "elevenlabs") body.stability = stability;
-      if (provider === "soniox") body.language = language;
+      const body: Record<string, unknown> = {
+        provider,
+        voiceModel,
+        text,
+      };
 
       const res = await authFetch("/api/tts", {
         method: "POST",
@@ -229,7 +230,7 @@ export default function ProviderDetailPage() {
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        throw new Error(j.error || `HTTP ${res.status}`);
+        throw new Error(j.message || `HTTP ${res.status}`);
       }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -242,35 +243,33 @@ export default function ProviderDetailPage() {
     }
   }
 
-  const hasConnections = accounts.length > 0;
-
   return (
     <>
       <nav className="breadcrumb">
         <Link href="/admin/tts">Text-to-Speech</Link>
-        <span className="sep">›</span>
-        <span>{meta!.label}</span>
+        <span className="sep">/</span>
+        <span>{meta.label}</span>
       </nav>
 
       <div className="provider-header">
-        <span className="provider-icon" style={{ background: meta!.accent }}>
-          {meta!.initials}
+        <span className="provider-icon" style={{ background: meta.accent }}>
+          {meta.initials}
         </span>
         <div>
           <div className="provider-title-row">
-            <h1>{meta!.label}</h1>
+            <h1>{meta.label}</h1>
             <span className="badge">TTS</span>
-            <a href={meta!.apiKeyUrl} target="_blank" rel="noreferrer">
-              Get API Key ↗
+            <a href={meta.apiKeyUrl} target="_blank" rel="noreferrer">
+              Get API Key
             </a>
           </div>
           <p className="muted" style={{ margin: "4px 0 0" }}>
-            {meta!.blurb} Model <span className="kbd">{meta!.model}</span>.
+            {meta.blurb} Default provider model{" "}
+            <span className="kbd">{meta.model}</span>.
           </p>
         </div>
       </div>
 
-      {/* ---------- Connections ---------- */}
       <div className="card">
         <div className="row between" style={{ marginBottom: 14 }}>
           <h2 style={{ margin: 0 }}>Connections</h2>
@@ -280,7 +279,7 @@ export default function ProviderDetailPage() {
               className="secondary sm"
               onClick={() => setAdding(true)}
             >
-              + Add
+              Add
             </button>
           )}
         </div>
@@ -292,45 +291,38 @@ export default function ProviderDetailPage() {
         )}
 
         {!accountsLoaded ? (
-          <p className="muted">Loading…</p>
+          <p className="muted">Loading...</p>
         ) : !hasConnections && !adding ? (
           <p className="muted">
-            No connections yet. Add your {meta!.label} API key to start synthesizing.
+            No connections yet. Add your {meta.label} API key to start
+            synthesizing.
           </p>
         ) : (
-          accounts.map((a) => {
-            const active = a.id === accountId;
-            return (
-              <div className="conn-row" key={a.id}>
-                <span className="key-ico" aria-hidden>⚷</span>
-                <div className="conn-info">
-                  <span className="conn-name">{a.label}</span>
-                  <span className="conn-sub">
-                    {active && <span className="pill good">● active</span>}
-                    <span className="muted-2" style={{ fontSize: 12 }}>
-                      Updated {new Date(a.updated_at).toLocaleDateString()}
-                    </span>
+          accounts.map((account) => (
+            <div className="conn-row" key={account.id}>
+              <span className="key-ico" aria-hidden>
+                #
+              </span>
+              <div className="conn-info">
+                <span className="conn-name">{account.label}</span>
+                <span className="conn-sub">
+                  {account.label === "default" && (
+                    <span className="pill good">default</span>
+                  )}
+                  <span className="muted-2" style={{ fontSize: 12 }}>
+                    Updated {new Date(account.updated_at).toLocaleDateString()}
                   </span>
-                </div>
-                {!active && (
-                  <button
-                    type="button"
-                    className="secondary sm"
-                    onClick={() => setAccountId(a.id)}
-                  >
-                    Use
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="danger sm"
-                  onClick={() => removeConnection(a.id, a.label)}
-                >
-                  Delete
-                </button>
+                </span>
               </div>
-            );
-          })
+              <button
+                type="button"
+                className="danger sm"
+                onClick={() => removeConnection(account.id, account.label)}
+              >
+                Delete
+              </button>
+            </div>
+          ))
         )}
 
         {adding && (
@@ -342,18 +334,18 @@ export default function ProviderDetailPage() {
                   id="newLabel"
                   value={newLabel}
                   onChange={(e) => setNewLabel(e.target.value)}
-                  placeholder="e.g. team, personal"
+                  placeholder="default"
                   maxLength={64}
                 />
               </div>
               <div className="field">
-                <label htmlFor="newKey">{meta!.label} API key</label>
+                <label htmlFor="newKey">{meta.label} API key</label>
                 <input
                   id="newKey"
                   type="password"
                   value={newKey}
                   onChange={(e) => setNewKey(e.target.value)}
-                  placeholder="paste here…"
+                  placeholder="Paste API key"
                   required
                 />
               </div>
@@ -366,7 +358,7 @@ export default function ProviderDetailPage() {
             <div className="row" style={{ gap: 10 }}>
               <button type="submit" disabled={saving || !newKey.trim()}>
                 {saving && <span className="spinner" />}
-                {saving ? "Saving…" : "Save connection"}
+                {saving ? "Saving..." : "Save connection"}
               </button>
               <button
                 type="button"
@@ -383,79 +375,80 @@ export default function ProviderDetailPage() {
               </button>
             </div>
             <p className="muted-2" style={{ fontSize: 12, marginTop: 8 }}>
-              Saving with an existing label updates that connection's key in place.
+              The public TTS API chooses the default connection first, then the
+              first label alphabetically.
             </p>
           </form>
         )}
       </div>
 
-      {/* ---------- Playground ---------- */}
       {hasConnections && (
         <div className="card">
           <div className="row between" style={{ marginBottom: 16 }}>
             <h2 style={{ margin: 0 }}>Synthesize</h2>
             <span className="muted-2" style={{ fontSize: 12 }}>
-              {voicesLoading ? "Loading voices…" : `${voices.length} voices`}
+              {modelsLoading
+                ? "Loading voice models..."
+                : `${voiceModels.length} voice models`}
             </span>
           </div>
 
           <form onSubmit={submit}>
             <div className="grid cols-2">
               <div className="field">
-                <label htmlFor="voice">Voice</label>
+                <label htmlFor="voiceModel">Voice model</label>
                 <input
-                  placeholder="Filter by name, language, gender…"
+                  placeholder="Filter by name, language, gender"
                   value={voiceFilter}
                   onChange={(e) => setVoiceFilter(e.target.value)}
                   style={{ marginBottom: 6 }}
                 />
                 <select
-                  id="voice"
-                  value={voice}
-                  onChange={(e) => setVoice(e.target.value)}
-                  size={1}
-                  disabled={voicesLoading || voices.length === 0}
+                  id="voiceModel"
+                  value={voiceModel}
+                  onChange={(e) => setVoiceModel(e.target.value)}
+                  disabled={modelsLoading || voiceModels.length === 0}
                 >
-                  {filteredVoices.length === 0 && (
+                  {filteredModels.length === 0 && (
                     <option value="">No matches</option>
                   )}
-                  {filteredVoices.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {formatVoiceLabel(v)}
+                  {filteredModels.map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {formatVoiceModelLabel(model)}
                     </option>
                   ))}
                 </select>
-                {currentVoice && (
+                {currentModel && (
                   <div className="row wrap" style={{ marginTop: 8, gap: 6 }}>
-                    {currentVoice.language && (
-                      <span className="pill">{currentVoice.language}</span>
+                    {currentModel.language && (
+                      <span className="pill">{currentModel.language}</span>
                     )}
-                    {currentVoice.gender && (
-                      <span className="pill">{currentVoice.gender}</span>
+                    {currentModel.gender && (
+                      <span className="pill">{currentModel.gender}</span>
                     )}
-                    {currentVoice.category && (
-                      <span className="pill">{currentVoice.category}</span>
+                    {currentModel.category && (
+                      <span className="pill">{currentModel.category}</span>
                     )}
-                    {currentVoice.previewUrl && (
+                    {currentModel.previewUrl && (
                       <a
                         className="pill"
-                        href={currentVoice.previewUrl}
+                        href={currentModel.previewUrl}
                         target="_blank"
                         rel="noreferrer"
                       >
-                        preview ↗
+                        preview
                       </a>
                     )}
                   </div>
                 )}
-                {currentVoice?.description && (
+                {currentModel?.description && (
                   <p className="muted-2" style={{ fontSize: 12, marginTop: 8 }}>
-                    {currentVoice.description}
+                    {currentModel.description}
                   </p>
                 )}
-                {voicesError && (
+                {modelsError && (
                   <div className="error-banner" style={{ marginTop: 10 }}>
-                    Couldn't load voices: {voicesError}
+                    Couldn't load voice models: {modelsError}
                   </div>
                 )}
               </div>
@@ -463,29 +456,7 @@ export default function ProviderDetailPage() {
               <div className="field">
                 {provider === "elevenlabs" && (
                   <>
-                    <label>Stability (v3)</label>
-                    <div className="segmented" style={{ width: "fit-content" }}>
-                      {(["creative", "natural", "robust"] as Stability[]).map((s) => (
-                        <button
-                          type="button"
-                          key={s}
-                          data-active={stability === s}
-                          onClick={() => setStability(s)}
-                        >
-                          {s[0].toUpperCase() + s.slice(1)}
-                        </button>
-                      ))}
-                    </div>
-                    <p className="muted-2" style={{ fontSize: 12, marginTop: 8 }}>
-                      {stability === "creative" && "More expressive, sometimes hallucinates."}
-                      {stability === "natural" && "Balanced. Best with audio tags."}
-                      {stability === "robust" && "Most consistent, less responsive to tags."}
-                    </p>
-
-                    <label style={{ marginTop: 14 }}>Audio tags</label>
-                    <p className="muted-2" style={{ fontSize: 12, margin: "0 0 8px" }}>
-                      Click to insert into the script at the cursor.
-                    </p>
+                    <label>Audio tags</label>
                     {AUDIO_TAG_GROUPS.map((group) => (
                       <div key={group.label} style={{ marginBottom: 10 }}>
                         <div
@@ -516,27 +487,25 @@ export default function ProviderDetailPage() {
                     ))}
                   </>
                 )}
+
                 {provider === "soniox" && (
                   <>
-                    <label htmlFor="language">Language</label>
-                    <select
-                      id="language"
-                      value={language}
-                      onChange={(e) => setLanguage(e.target.value)}
-                      disabled={languages.length === 0}
-                    >
-                      {languages.length === 0 && (
-                        <option value="en">English</option>
-                      )}
-                      {languages.map((l) => (
-                        <option key={l.code} value={l.code}>
-                          {l.name} ({l.code})
-                        </option>
-                      ))}
-                    </select>
+                    <label>Provider model</label>
+                    <p className="muted" style={{ marginTop: 0 }}>
+                      <span className="kbd">{meta.model}</span>
+                    </p>
+                    {languages.length > 0 && (
+                      <div className="row wrap" style={{ gap: 6 }}>
+                        {languages.slice(0, 12).map((item) => (
+                          <span className="pill" key={item.code}>
+                            {item.code}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <p className="muted-2" style={{ fontSize: 12, marginTop: 8 }}>
-                      Soniox uses model <span className="kbd">{meta!.model}</span>.
-                      The voice must support the selected language.
+                      The public request body only needs provider, voiceModel,
+                      and text.
                     </p>
                   </>
                 )}
@@ -555,7 +524,7 @@ export default function ProviderDetailPage() {
                 placeholder={
                   provider === "elevenlabs"
                     ? "Try: [whispers] Listen carefully. [excited] We're live!"
-                    : "Type the text to synthesize…"
+                    : "Type the text to synthesize"
                 }
               />
               <div className="char-counter">{text.length} / 5000</div>
@@ -564,10 +533,10 @@ export default function ProviderDetailPage() {
             <div className="row" style={{ gap: 10 }}>
               <button
                 type="submit"
-                disabled={busy || !text.trim() || !voice || accountId === null}
+                disabled={busy || !text.trim() || !voiceModel}
               >
                 {busy && <span className="spinner" />}
-                {busy ? "Synthesizing…" : "Synthesize"}
+                {busy ? "Synthesizing..." : "Synthesize"}
               </button>
               <button
                 type="button"
@@ -580,7 +549,9 @@ export default function ProviderDetailPage() {
             </div>
 
             {error && (
-              <div className="error-banner" style={{ marginTop: 14 }}>{error}</div>
+              <div className="error-banner" style={{ marginTop: 14 }}>
+                {error}
+              </div>
             )}
 
             {audioUrl && (
@@ -592,7 +563,7 @@ export default function ProviderDetailPage() {
                     href={audioUrl}
                     download={`tts-${provider}.mp3`}
                   >
-                    ⬇ Download
+                    Download
                   </a>
                 </div>
               </>
@@ -604,9 +575,9 @@ export default function ProviderDetailPage() {
   );
 }
 
-function formatVoiceLabel(v: Voice) {
-  const bits: string[] = [v.name];
-  if (v.language) bits.push(`· ${v.language}`);
-  if (v.gender) bits.push(`· ${v.gender}`);
+function formatVoiceModelLabel(model: VoiceModel) {
+  const bits: string[] = [model.name];
+  if (model.language) bits.push(`- ${model.language}`);
+  if (model.gender) bits.push(`- ${model.gender}`);
   return bits.join(" ");
 }

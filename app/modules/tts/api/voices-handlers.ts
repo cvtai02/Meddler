@@ -4,6 +4,7 @@ import {
   corsOptions,
 } from "@/app/core/api/responses";
 import { isAuthorized } from "@/app/core/auth/system-secret";
+import { isTtsProviderId } from "@/app/core/providers/tts-providers";
 import { listVoices } from "../usecases/list-voices";
 
 export const runtime = "nodejs";
@@ -17,16 +18,15 @@ export async function GET(req: Request) {
     return apiError("UNAUTHORIZED", "Missing or invalid bearer token", 401);
   }
   const url = new URL(req.url);
-  const accountIdRaw = url.searchParams.get("accountId");
-  const accountId = accountIdRaw ? Number(accountIdRaw) : NaN;
-  if (!Number.isInteger(accountId) || accountId <= 0) {
-    return apiError("BAD_REQUEST", "accountId required", 400);
+  const provider = String(url.searchParams.get("provider") ?? "").trim();
+  if (!isTtsProviderId(provider)) {
+    return apiError("BAD_REQUEST", "provider must be elevenlabs or soniox", 400);
   }
 
   try {
-    const result = await listVoices(accountId);
+    const result = await listVoices(provider);
     if (!result) {
-      return apiError("NOT_FOUND", "account not found", 404);
+      return apiError("NOT_FOUND", "provider connection not found", 404);
     }
     return apiJson(result, {
       headers: { "Cache-Control": "private, max-age=300" },

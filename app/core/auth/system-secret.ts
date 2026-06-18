@@ -1,7 +1,5 @@
 import crypto from "node:crypto";
 
-const ACCESS_TOKEN_TTL_SECONDS = 60 * 60 * 8;
-
 function secret(): string {
   const s = process.env.SYSTEM_SECRET;
   if (!s) throw new Error("SYSTEM_SECRET is not set");
@@ -37,7 +35,7 @@ function safeEqual(a: string, b: string): boolean {
 export function issueAccessToken(now = Date.now()): string {
   const iat = Math.floor(now / 1000);
   const payload = base64UrlEncode(
-    JSON.stringify({ iat, exp: iat + ACCESS_TOKEN_TTL_SECONDS }),
+    JSON.stringify({ iat }),
   );
   return `${payload}.${sign(payload)}`;
 }
@@ -48,8 +46,14 @@ function verifyAccessToken(token: string, now = Date.now()): boolean {
   if (!safeEqual(signature, sign(payload))) return false;
 
   try {
-    const parsed = JSON.parse(base64UrlDecode(payload)) as { exp?: unknown };
-    return typeof parsed.exp === "number" && parsed.exp > Math.floor(now / 1000);
+    const parsed = JSON.parse(base64UrlDecode(payload)) as {
+      exp?: unknown;
+      iat?: unknown;
+    };
+    if (typeof parsed.exp === "number") {
+      return parsed.exp > Math.floor(now / 1000);
+    }
+    return typeof parsed.iat === "number";
   } catch {
     return false;
   }

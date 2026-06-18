@@ -1,11 +1,7 @@
-export type StabilityV3Dto = "creative" | "natural" | "robust";
-
 export type SynthesizeTtsRequestDto = {
-  accountId: number;
+  provider: "elevenlabs" | "soniox";
+  voiceModel: string;
   text: string;
-  voice?: string;
-  language?: string;
-  stability?: StabilityV3Dto;
 };
 
 export type SynthesizeTtsResultDto = {
@@ -14,7 +10,7 @@ export type SynthesizeTtsResultDto = {
   voice: string;
 };
 
-type VoiceDto = {
+export type VoiceModelDto = {
   id: string;
   name: string;
   language?: string;
@@ -27,6 +23,7 @@ type VoiceDto = {
 type LanguageDto = { code: string; name: string };
 
 export type ListVoicesResultDto = {
-  voices: VoiceDto[];
+  voices: VoiceModelDto[];
+  voiceModels: VoiceModelDto[];
   languages: LanguageDto[];
 };
