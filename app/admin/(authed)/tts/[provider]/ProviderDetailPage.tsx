@@ -556,11 +556,7 @@ export default function ProviderDetailPage() {
 
               {showApiRequest && (
                 <pre className="overflow-x-auto rounded-lg border border-border bg-muted p-4 text-xs font-mono">
-                  {JSON.stringify(
-                    { provider, voiceModel, text },
-                    null,
-                    2,
-                  )}
+                  {`POST /api/tts HTTP/1.1\nContent-Type: application/json\n\n${JSON.stringify({ provider, voiceModel, text }, null, 2)}`}
                 </pre>
               )}
 
