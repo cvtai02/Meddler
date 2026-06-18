@@ -1,6 +1,7 @@
 "use client";
 
 import { TTS_DOC_FILENAME, TTS_DOC_MD } from "./content";
+import { Button } from "@/components/ui/button";
 
 export default function DownloadMarkdown() {
   function download() {
@@ -16,8 +17,8 @@ export default function DownloadMarkdown() {
   }
 
   return (
-    <button type="button" className="secondary sm" onClick={download}>
-      ⬇ Download Markdown
-    </button>
+    <Button type="button" variant="secondary" size="sm" onClick={download}>
+      Download Markdown
+    </Button>
   );
 }

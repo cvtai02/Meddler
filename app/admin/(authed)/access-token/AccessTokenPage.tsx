@@ -2,6 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getAccessToken, setAccessToken } from "@/app/core/auth/client-auth";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type TokenPayload = {
   iat?: number;
@@ -80,66 +87,88 @@ export default function AccessTokenPage() {
 
   return (
     <>
-      <h1>Access Token</h1>
-      <p className="lede">Generate a permanent bearer token for external API clients.</p>
+      <h1 className="text-2xl font-semibold tracking-tight">Access Token</h1>
+      <p className="mb-6 text-sm text-muted-foreground">
+        Generate a permanent bearer token for external API clients.
+      </p>
 
-      <div className="card">
-        <h2>Generate Token</h2>
-        <form onSubmit={generate}>
-          <div className="field">
-            <label htmlFor="systemSecret">System secret</label>
-            <input
-              id="systemSecret"
-              type="password"
-              autoComplete="current-password"
-              value={secret}
-              onChange={(e) => setSecret(e.target.value)}
-              placeholder="Enter SYSTEM_SECRET"
-              required
-            />
-          </div>
-          <button type="submit" disabled={busy || !secret.trim()}>
-            {busy && <span className="spinner" />}
-            {busy ? "Generating..." : "Generate token"}
-          </button>
-        </form>
-        {error && (
-          <div className="error-banner" style={{ marginTop: 14 }}>
-            {error}
-          </div>
-        )}
-      </div>
-
-      <div className="card">
-        <div className="row between" style={{ marginBottom: 12 }}>
-          <h2 style={{ margin: 0 }}>Bearer Token</h2>
-          <button
-            type="button"
-            className="secondary sm"
-            onClick={copyToken}
-            disabled={!token}
-          >
-            {copied ? "Copied" : "Copy"}
-          </button>
-        </div>
-
-        {token ? (
-          <>
-            <textarea readOnly value={token} style={{ minHeight: 92 }} />
-            <div className="row wrap" style={{ gap: 8, marginTop: 10 }}>
-              <span className="pill good">permanent</span>
-              <span className="pill">Issued {formatDate(payload?.iat)}</span>
-              {payload?.exp && (
-                <span className="pill warn">Legacy expiry {formatDate(payload.exp)}</span>
-              )}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Generate Token
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={generate} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="systemSecret">System secret</Label>
+              <Input
+                id="systemSecret"
+                type="password"
+                autoComplete="current-password"
+                value={secret}
+                onChange={(e) => setSecret(e.target.value)}
+                placeholder="Enter SYSTEM_SECRET"
+                required
+              />
             </div>
-            <h2 style={{ marginTop: 20 }}>Authorization header</h2>
-            <pre>{`Authorization: Bearer ${token}`}</pre>
-          </>
-        ) : (
-          <p className="muted">Generate a token to use Meddler APIs from an external app.</p>
-        )}
-      </div>
+            <Button type="submit" disabled={busy || !secret.trim()}>
+              {busy && <span className="spinner" />}
+              {busy ? "Generating..." : "Generate token"}
+            </Button>
+          </form>
+          {error && (
+            <Alert variant="destructive" className="mt-3.5">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Bearer Token
+            </CardTitle>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={copyToken}
+              disabled={!token}
+            >
+              {copied ? "Copied" : "Copy"}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {token ? (
+            <>
+              <Textarea readOnly value={token} className="min-h-[92px] font-mono text-xs" />
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                <Badge className="bg-success text-success-foreground">permanent</Badge>
+                <Badge variant="secondary">Issued {formatDate(payload?.iat)}</Badge>
+                {payload?.exp && (
+                  <Badge variant="outline" className="border-warning/30 text-warning">
+                    Legacy expiry {formatDate(payload.exp)}
+                  </Badge>
+                )}
+              </div>
+              <h2 className="mt-5 mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Authorization header
+              </h2>
+              <pre className="overflow-auto rounded-lg border border-border bg-[#060812] p-3 text-xs">
+                {`Authorization: Bearer ${token}`}
+              </pre>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Generate a token to use Meddler APIs from an external app.
+            </p>
+          )}
+        </CardContent>
+      </Card>
     </>
   );
 }

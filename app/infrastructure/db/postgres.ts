@@ -24,10 +24,12 @@ function makePool() {
     throw new Error("DATABASE_CONNECTION_STRING or DATABASE_URL is not set");
   }
   const pool = new Pool({ connectionString: url, max: 10, ssl: sslConfig(url) });
-  pool.on("connect", (client) => {
-    client
-      .query("SET search_path TO meddler, public")
-      .catch((err) => console.warn("Failed to set search_path:", err.message));
+  pool.on("connect", async (client) => {
+    try {
+      await client.query("SET search_path TO meddler, public");
+    } catch (err: any) {
+      console.warn("Failed to set search_path:", err.message);
+    }
   });
   return pool;
 }

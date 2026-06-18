@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { authFetch } from "@/app/core/auth/client-auth";
 import { TTS_PROVIDER_META } from "@/app/core/providers/tts-providers";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 
 type Provider = {
   id: string;
@@ -44,16 +46,16 @@ export default function TtsProvidersPage() {
 
   return (
     <>
-      <h1>Text-to-Speech</h1>
-      <p className="lede">Manage your text-to-speech providers.</p>
+      <h1 className="text-2xl font-semibold tracking-tight">Text-to-Speech</h1>
+      <p className="mb-6 text-sm text-muted-foreground">Manage your text-to-speech providers.</p>
 
       {error && (
-        <div className="card">
-          <div className="error-banner">Couldn't load connections: {error}</div>
-        </div>
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>Couldn&apos;t load connections: {error}</AlertDescription>
+        </Alert>
       )}
 
-      <div className="provider-grid">
+      <div className="grid gap-3.5 sm:grid-cols-[repeat(auto-fill,minmax(240px,1fr))]">
         {TTS_PROVIDER_META.map((p) => {
           const apiProvider = providers.find((item) => item.id === p.id);
           const n = apiProvider?.connectionCount ?? 0;
@@ -62,14 +64,25 @@ export default function TtsProvidersPage() {
             <Link
               key={p.id}
               href={`/admin/tts/${p.id}`}
-              className="provider-card"
+              className="flex items-center gap-3.5 rounded-xl border border-border bg-card p-4 shadow-sm transition-colors hover:border-border/80 hover:bg-secondary active:translate-y-px"
             >
-              <span className="provider-icon" style={{ background: p.accent }}>
+              <span
+                className="grid size-11 shrink-0 place-items-center rounded-xl text-[15px] font-bold text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+                style={{ background: p.accent }}
+              >
                 {p.initials}
               </span>
-              <span className="provider-meta">
-                <span className="provider-name">{p.label}</span>
-                <span className={connected ? "provider-status good" : "provider-status"}>
+              <span className="flex min-w-0 flex-col gap-0.5">
+                <span className="text-[15px] font-semibold">{p.label}</span>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1.5 text-xs",
+                    connected ? "text-success" : "text-muted-foreground"
+                  )}
+                >
+                  {connected && (
+                    <span className="size-1.5 rounded-full bg-success shadow-[0_0_8px_rgba(52,211,153,0.7)]" />
+                  )}
                   {!loaded
                     ? "…"
                     : connected

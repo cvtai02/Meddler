@@ -24,9 +24,9 @@ export default function AuthedLayout({
   if (!ready) return null;
 
   return (
-    <div className="app">
+    <div className="grid min-h-screen grid-cols-1 md:grid-cols-[260px_1fr]">
       <Sidebar />
-      <main className="main">{children}</main>
+      <main className="max-w-5xl px-6 py-7 md:px-10">{children}</main>
     </div>
   );
 }

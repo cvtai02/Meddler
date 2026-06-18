@@ -2,6 +2,12 @@
 
 import { useState } from "react";
 import { authFetch } from "@/app/core/auth/client-auth";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type CrawlResponse = {
   source: string;
@@ -48,104 +54,121 @@ export default function CrawlPage() {
 
   return (
     <>
-      <h1>Crawl Assets</h1>
-      <p className="lede">
+      <h1 className="text-2xl font-semibold tracking-tight">Crawl Assets</h1>
+      <p className="mb-6 text-sm text-muted-foreground">
         Paste a TikTok, Facebook, or YouTube URL — get a direct media link via the configured Cobalt backend.
       </p>
 
-      <div className="card">
-        <form onSubmit={submit}>
-          <div className="field">
-            <label htmlFor="url">Media URL</label>
-            <input
-              id="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://…"
-              required
-            />
-            <div className="row wrap" style={{ marginTop: 6 }}>
-              {EXAMPLES.map((ex) => (
-                <button
-                  key={ex}
-                  type="button"
-                  className="chip"
-                  onClick={() => setUrl(ex)}
-                >
-                  {new URL(ex).hostname.replace(/^www\./, "")}
-                </button>
-              ))}
+      <Card>
+        <CardContent className="pt-6">
+          <form onSubmit={submit}>
+            <div className="space-y-2">
+              <Label htmlFor="url">Media URL</Label>
+              <Input
+                id="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://…"
+                required
+              />
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {EXAMPLES.map((ex) => (
+                  <button
+                    key={ex}
+                    type="button"
+                    className="inline-flex items-center rounded-full border border-border bg-background px-2.5 py-1 text-xs transition-colors hover:bg-secondary"
+                    onClick={() => setUrl(ex)}
+                  >
+                    {new URL(ex).hostname.replace(/^www\./, "")}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="row" style={{ gap: 10 }}>
-            <button type="submit" disabled={busy || !url.trim()}>
-              {busy && <span className="spinner" />}
-              {busy ? "Fetching…" : "Fetch"}
-            </button>
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => { setUrl(""); setResult(null); setError(null); }}
-              disabled={busy}
-            >
-              Reset
-            </button>
-          </div>
+            <div className="mt-4 flex items-center gap-2.5">
+              <Button type="submit" disabled={busy || !url.trim()}>
+                {busy && <span className="spinner" />}
+                {busy ? "Fetching…" : "Fetch"}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => { setUrl(""); setResult(null); setError(null); }}
+                disabled={busy}
+              >
+                Reset
+              </Button>
+            </div>
 
-          {error && <div className="error-banner" style={{ marginTop: 14 }}>{error}</div>}
-        </form>
-      </div>
+            {error && (
+              <Alert variant="destructive" className="mt-3.5">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+          </form>
+        </CardContent>
+      </Card>
 
       {result && (
-        <div className="card">
-          <div className="row between" style={{ marginBottom: 12 }}>
-            <div className="row" style={{ gap: 6 }}>
-              <span className="pill">{result.source}</span>
-              <span className={`pill ${result.status === "ok" ? "good" : result.status === "picker" ? "warn" : "danger"}`}>
+        <Card className="mt-4">
+          <CardContent className="pt-6">
+            <div className="mb-3 flex items-center gap-2">
+              <Badge variant="secondary">{result.source}</Badge>
+              <Badge
+                variant={result.status === "ok" ? "default" : result.status === "picker" ? "outline" : "destructive"}
+                className={result.status === "ok" ? "bg-success text-success-foreground" : ""}
+              >
                 {result.status}
-              </span>
+              </Badge>
             </div>
-          </div>
 
-          {result.url && (
-            <p>
-              <a href={result.url} target="_blank" rel="noreferrer">
-                ⬇ Download media
-              </a>
-            </p>
-          )}
-          {result.picker && result.picker.length > 0 && (
-            <>
-              <h2>Pick one</h2>
-              <ul>
-                {result.picker.map((p, i) => (
-                  <li key={i}>
-                    <a href={p.url} target="_blank" rel="noreferrer">
-                      {p.type} #{i + 1}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
+            {result.url && (
+              <p>
+                <a href={result.url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                  ⬇ Download media
+                </a>
+              </p>
+            )}
+            {result.picker && result.picker.length > 0 && (
+              <>
+                <h2 className="mt-4 mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pick one</h2>
+                <ul className="list-inside list-disc space-y-1 text-sm">
+                  {result.picker.map((p, i) => (
+                    <li key={i}>
+                      <a href={p.url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                        {p.type} #{i + 1}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
 
-          <details style={{ marginTop: 12 }}>
-            <summary className="muted">Raw response</summary>
-            <pre>{JSON.stringify(result, null, 2)}</pre>
-          </details>
-        </div>
+            <details className="mt-3">
+              <summary className="cursor-pointer text-sm text-muted-foreground">Raw response</summary>
+              <pre className="mt-2 max-h-64 overflow-auto rounded-lg border border-border bg-[#060812] p-3 text-xs">
+                {JSON.stringify(result, null, 2)}
+              </pre>
+            </details>
+          </CardContent>
+        </Card>
       )}
 
-      <div className="card">
-        <h2>Backend</h2>
-        <p className="muted">
-          Defaults to the Cobalt-compatible JSON API at{" "}
-          <span className="kbd">api.cobalt.tools</span>. Override with{" "}
-          <span className="kbd">CRAWL_API_URL</span> in <span className="kbd">.env</span> to point at a
-          self-hosted Cobalt instance.
-        </p>
-      </div>
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Backend
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Defaults to the Cobalt-compatible JSON API at{" "}
+            <Badge variant="secondary">api.cobalt.tools</Badge>. Override with{" "}
+            <Badge variant="secondary">CRAWL_API_URL</Badge> in <Badge variant="secondary">.env</Badge> to point at a
+            self-hosted Cobalt instance.
+          </p>
+        </CardContent>
+      </Card>
     </>
   );
 }
