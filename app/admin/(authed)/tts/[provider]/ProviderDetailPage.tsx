@@ -64,6 +64,7 @@ export default function ProviderDetailPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [showApiRequest, setShowApiRequest] = useState(false);
   const lastUrl = useRef<string | null>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
 
@@ -544,7 +545,24 @@ export default function ProviderDetailPage() {
                 >
                   Clear
                 </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowApiRequest((v) => !v)}
+                >
+                  {showApiRequest ? "Hide" : "Show"} API Request
+                </Button>
               </div>
+
+              {showApiRequest && (
+                <pre className="overflow-x-auto rounded-lg border border-border bg-muted p-4 text-xs font-mono">
+                  {JSON.stringify(
+                    { provider, voiceModel, text },
+                    null,
+                    2,
+                  )}
+                </pre>
+              )}
 
               {error && (
                 <Alert variant="destructive">
