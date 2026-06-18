@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound, useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { authFetch } from "@/app/core/auth/client-auth";
+import { AUDIO_TAG_GROUPS } from "@/app/core/providers/audio-tags";
 import { providerById } from "@/app/core/providers/tts-providers";
 
 type Voice = {
@@ -26,34 +27,6 @@ type Account = {
 };
 
 type Stability = "creative" | "natural" | "robust";
-
-const AUDIO_TAG_GROUPS: { label: string; tags: string[] }[] = [
-  {
-    label: "Emotions",
-    tags: [
-      "excited", "happy", "sad", "angry", "nervous", "frustrated",
-      "curious", "crying", "tired", "hopeful", "annoyed", "sarcastic",
-    ],
-  },
-  {
-    label: "Delivery",
-    tags: [
-      "whispers", "shouts", "softly", "deadpan", "cheerfully", "playfully",
-      "dramatic tone", "serious tone", "slowly", "rushed", "stammers", "hesitates",
-    ],
-  },
-  {
-    label: "Reactions",
-    tags: [
-      "laughs", "laughs harder", "chuckles", "giggles", "sighs", "exhales",
-      "gasps", "gulps", "snorts", "clears throat", "coughs", "yawns", "groans",
-    ],
-  },
-  {
-    label: "Pauses & pacing",
-    tags: ["pause", "short pause", "long pause", "interrupting", "drawn out"],
-  },
-];
 
 export default function ProviderDetailPage() {
   const params = useParams<{ provider: string }>();

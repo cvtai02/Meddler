@@ -6,8 +6,20 @@ import {
 } from "@/app/core/api/responses";
 import { isAuthorized } from "@/app/core/auth/system-secret";
 import { crawlUrl } from "../usecases/crawl-url";
+import type { CrawlResultDto } from "../dtos/crawl-result.dto";
 
 export const runtime = "nodejs";
+
+function statusForCrawlResult(result: CrawlResultDto): number {
+  if (result.status !== "error") return 200;
+  if (
+    result.error === "Invalid or blocked URL." ||
+    result.error === "Unsupported source. Use a TikTok, Facebook, or YouTube link."
+  ) {
+    return 400;
+  }
+  return 502;
+}
 
 export function OPTIONS() {
   return corsOptions();
@@ -29,6 +41,6 @@ export async function POST(req: Request) {
 
   const result = await crawlUrl(url);
   return apiJson(result, {
-    status: result.status === "error" ? 502 : 200,
+    status: statusForCrawlResult(result),
   });
 }

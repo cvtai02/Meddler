@@ -28,5 +28,14 @@ export async function authFetch(
   const token = getAccessToken();
   const headers = new Headers(init.headers);
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  return fetch(input, { ...init, headers });
+
+  const response = await fetch(input, { ...init, headers });
+  if (response.status === 401 && typeof window !== "undefined") {
+    clearAccessToken();
+    if (window.location.pathname !== "/admin/login") {
+      window.location.replace("/admin/login");
+    }
+  }
+
+  return response;
 }

@@ -65,14 +65,17 @@ export async function crawl(inputUrl: string): Promise<CrawlResult> {
   }
 
   const api = (process.env.CRAWL_API_URL || "https://api.cobalt.tools/").replace(/\/+$/, "/");
+  const authorization = process.env.CRAWL_API_AUTHORIZATION?.trim();
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+    "User-Agent": "meddler",
+  };
+  if (authorization) headers.Authorization = authorization;
 
   const res = await fetch(api, {
     method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "User-Agent": "meddler",
-    },
+    headers,
     body: JSON.stringify({ url: inputUrl }),
   });
 

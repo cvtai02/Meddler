@@ -28,17 +28,21 @@ export default function DocsPage() {
 
         <h2>Authentication</h2>
         <p className="muted">
-          Send your <span className="kbd">SYSTEM_SECRET</span> as a bearer
-          token. No login or session cookie is required.
+          First exchange your <span className="kbd">SYSTEM_SECRET</span> for an
+          access token, then send that token as a bearer token.
         </p>
-        <pre>{`Authorization: Bearer $SYSTEM_SECRET`}</pre>
+        <pre>{`curl -X POST "https://meddler.minfect.com/api/auth/login" \\
+  -H "Content-Type: application/json" \\
+  -d '{ "systemSecret": "$SYSTEM_SECRET" }'
+
+Authorization: Bearer $ACCESS_TOKEN`}</pre>
 
         <h2 style={{ marginTop: 20 }}>Endpoint</h2>
         <pre>{`POST https://meddler.minfect.com/api/tts`}</pre>
 
         <h2 style={{ marginTop: 20 }}>Example</h2>
         <pre>{`curl -X POST "https://meddler.minfect.com/api/tts" \\
-  -H "Authorization: Bearer $SYSTEM_SECRET" \\
+  -H "Authorization: Bearer $ACCESS_TOKEN" \\
   -H "Content-Type: application/json" \\
   -d '{
     "accountId": 1,
@@ -137,6 +141,71 @@ export default function DocsPage() {
             <tr>
               <td><span className="kbd">500</span></td>
               <td>Upstream provider error during synthesis.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* ---------------- Use case 2: Audio tags ---------------- */}
+      <div className="card">
+        <div className="row wrap" style={{ gap: 10, marginBottom: 6 }}>
+          <span className="pill">Use case 2</span>
+          <span className="pill good">GET /api/tts/audio-tags</span>
+        </div>
+        <h2 style={{ marginTop: 4 }}>Get Audio Tags</h2>
+        <p className="muted" style={{ marginBottom: 0 }}>
+          Fetch the ElevenLabs audio-tag catalog used by the Meddler UI so an
+          external app can render the same tag picker.
+        </p>
+
+        <hr />
+
+        <h2>Endpoint</h2>
+        <pre>{`GET https://meddler.minfect.com/api/tts/audio-tags`}</pre>
+
+        <h2 style={{ marginTop: 20 }}>Example</h2>
+        <pre>{`curl "https://meddler.minfect.com/api/tts/audio-tags" \\
+  -H "Authorization: Bearer $ACCESS_TOKEN"`}</pre>
+
+        <h2 style={{ marginTop: 20 }}>Response</h2>
+        <pre>{`{
+  "provider": "elevenlabs",
+  "syntax": "[tag]",
+  "usage": "Insert tags inline in the text field, for example: [excited] Hello.",
+  "groups": [
+    {
+      "label": "Emotions",
+      "tags": ["excited", "happy", "sad", "angry"]
+    }
+  ]
+}`}</pre>
+
+        <h2 style={{ marginTop: 20 }}>Notes</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Topic</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Provider</td>
+              <td>Audio tags are intended for ElevenLabs Eleven v3.</td>
+            </tr>
+            <tr>
+              <td>Syntax</td>
+              <td>
+                Insert tags inline in <span className="kbd">text</span>, for
+                example <span className="kbd">[whispers]</span>.
+              </td>
+            </tr>
+            <tr>
+              <td>Cache</td>
+              <td>
+                Response includes{" "}
+                <span className="kbd">Cache-Control: private, max-age=3600</span>.
+              </td>
             </tr>
           </tbody>
         </table>

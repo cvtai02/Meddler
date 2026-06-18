@@ -9,10 +9,14 @@ Base URL: \`https://meddler.minfect.com\`.
 
 ## Authentication
 
-Send your system secret as a bearer token. No login or session cookie is
-required.
+First exchange your system secret for an access token, then send that token as
+a bearer token.
 
-    Authorization: Bearer $SYSTEM_SECRET
+    curl -X POST "https://meddler.minfect.com/api/auth/login" \\
+      -H "Content-Type: application/json" \\
+      -d '{ "systemSecret": "$SYSTEM_SECRET" }'
+
+    Authorization: Bearer $ACCESS_TOKEN
 
 ## Endpoint
 
@@ -21,7 +25,7 @@ required.
 ## Example
 
     curl -X POST "https://meddler.minfect.com/api/tts" \\
-      -H "Authorization: Bearer $SYSTEM_SECRET" \\
+      -H "Authorization: Bearer $ACCESS_TOKEN" \\
       -H "Content-Type: application/json" \\
       -d '{
         "accountId": 1,
@@ -54,4 +58,40 @@ On success: \`200 OK\` with \`Content-Type: audio/mpeg\` — the raw MP3 bytes
 | 401    | Missing or invalid bearer token. |
 | 404    | No connection matches accountId. |
 | 500    | Upstream provider error during synthesis. |
+
+# Get Audio Tags
+
+Fetch the ElevenLabs audio-tag catalog used by the Meddler UI so an external app
+can render the same tag picker.
+
+## Endpoint
+
+    GET https://meddler.minfect.com/api/tts/audio-tags
+
+## Example
+
+    curl "https://meddler.minfect.com/api/tts/audio-tags" \\
+      -H "Authorization: Bearer $ACCESS_TOKEN"
+
+## Response
+
+    {
+      "provider": "elevenlabs",
+      "syntax": "[tag]",
+      "usage": "Insert tags inline in the text field, for example: [excited] Hello.",
+      "groups": [
+        {
+          "label": "Emotions",
+          "tags": ["excited", "happy", "sad", "angry"]
+        }
+      ]
+    }
+
+## Notes
+
+| Topic    | Details |
+| -------- | ------- |
+| Provider | Audio tags are intended for ElevenLabs Eleven v3. |
+| Syntax   | Insert tags inline in the text field, for example [whispers]. |
+| Cache    | Response includes Cache-Control: private, max-age=3600. |
 `;
